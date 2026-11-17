@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import laboratorios, usuarios, equipamentos, experimentos, manutencoes, reservas
+from app.routers import laboratorios, usuarios, equipamentos, experimentos, manutencoes, reservas, relatorios
 from app.database import create_db_and_tables
 
 app = FastAPI()
@@ -18,3 +18,4 @@ app.include_router(equipamentos.router)
 app.include_router(experimentos.router)
 app.include_router(manutencoes.router)
 app.include_router(reservas.router)
+app.include_router(relatorios.router)
