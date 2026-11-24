@@ -1,4 +1,4 @@
-from datetime import datetime
+from pydantic import NaiveDatetime
 from sqlmodel import SQLModel, Field
 
 class LaboratorioBase(SQLModel):
@@ -95,8 +95,8 @@ class ReservaBase(SQLModel):
     equipamento_id: int = Field(foreign_key="equipamento.id", index=True)
     usuario_id: int = Field(foreign_key="usuario.id", index=True)
     experimento_id: int | None = Field(default=None, foreign_key="experimento.id")
-    inicio: datetime
-    fim: datetime
+    inicio: NaiveDatetime
+    fim: NaiveDatetime
     status: str = Field(default="ativa", max_length=20)
 
 class ReservaCreate(ReservaBase):
@@ -109,16 +109,16 @@ class ReservaUpdate(SQLModel):
     equipamento_id: int | None = None
     usuario_id: int | None = None
     experimento_id: int | None = None
-    inicio: datetime | None = None
-    fim: datetime | None = None
+    inicio: NaiveDatetime | None = None
+    fim: NaiveDatetime | None = None
     status: str | None = None
 
 class ManutencaoBase(SQLModel):
     observacoes: str | None = Field(default=None, max_length=300)
     equipamento_id: int = Field(foreign_key="equipamento.id", index=True)
     descricao: str = Field(min_length=3, max_length=300)
-    inicio: datetime
-    fim: datetime | None = None
+    inicio: NaiveDatetime
+    fim: NaiveDatetime | None = None
     status: str = Field(default="aberta", max_length=20)
 
 class ManutencaoCreate(ManutencaoBase):
@@ -130,6 +130,7 @@ class ManutencaoPublic(ManutencaoBase):
 class ManutencaoUpdate(SQLModel):
     observacoes: str | None = None
     descricao: str | None = None
-    inicio: datetime | None = None
-    fim: datetime | None = None
+    inicio: NaiveDatetime | None = None
+    fim: NaiveDatetime | None = None
     status: str | None = None
+

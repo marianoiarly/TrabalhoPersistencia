@@ -2,7 +2,13 @@ from fastapi import HTTPException
 from sqlmodel import Session
 from app.models import Equipamento, Laboratorio, Usuario
 
-def validar_experimento(session: Session, laboratorio_id: int, responsavel_id: int, equipamento_ids: list[int]):
+
+def validar_experimento(
+    session: Session,
+    laboratorio_id: int,
+    responsavel_id: int,
+    equipamento_ids: list[int],
+):
     laboratorio = session.get(Laboratorio, laboratorio_id)
     if laboratorio is None:
         raise HTTPException(404, "Laboratorio nao encontrado")

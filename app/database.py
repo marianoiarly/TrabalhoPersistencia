@@ -13,15 +13,19 @@ engine = create_engine(
 )
 
 if DATABASE_URL.startswith("sqlite"):
+
     @event.listens_for(engine, "connect")
     def habilitar_chaves_estrangeiras(conexao, registro):
         cursor = conexao.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
+
 def create_db_and_tables():
     from app import models
+
     SQLModel.metadata.create_all(engine)
+
 
 def getSession():
     with Session(engine) as session:
