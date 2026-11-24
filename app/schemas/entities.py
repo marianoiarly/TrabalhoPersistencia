@@ -114,6 +114,7 @@ class ReservaUpdate(SQLModel):
     status: str | None = None
 
 class ManutencaoBase(SQLModel):
+    observacoes: str | None = Field(default=None, max_length=300)
     equipamento_id: int = Field(foreign_key="equipamento.id", index=True)
     descricao: str = Field(min_length=3, max_length=300)
     inicio: datetime
@@ -127,6 +128,7 @@ class ManutencaoPublic(ManutencaoBase):
     id: int
 
 class ManutencaoUpdate(SQLModel):
+    observacoes: str | None = None
     descricao: str | None = None
     inicio: datetime | None = None
     fim: datetime | None = None
