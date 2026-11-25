@@ -96,3 +96,39 @@ def test_relatorios(cliente):
     assert cliente.get("/relatorios/equipamentos-disponiveis", params={
         "inicio": "2026-12-03T14:00:00", "fim": "2026-12-03T16:00:00"
     }).status_code == 200
+
+
+def test_atualizacao_equipamento_nao_quebra_experimento(cliente):
+    laboratorio_id, usuario_id, equipamento_id = cadastrar_base(cliente)
+    outro_lab = cliente.post("/laboratorios/", json={
+        "nome": "Laboratorio de Quimica", "localizacao": "Sala 02"
+    }).json()["id"]
+    exp = cliente.post("/experimentos/", json={
+        "nome": "Experimento de teste", "laboratorio_id": laboratorio_id,
+        "responsavel_id": usuario_id, "equipamento_ids": [equipamento_id]
+    })
+    assert exp.status_code == 201
+    resposta = cliente.patch(f"/equipamentos/{equipamento_id}", json={"laboratorio_id": outro_lab})
+    assert resposta.status_code == 409
+    assert cliente.get(f"/equipamentos/{equipamento_id}").json()["laboratorio_id"] == laboratorio_id
+
+
+def test_atualizacao_experimento_nao_quebra_reserva(cliente):
+    laboratorio_id, usuario_id, equipamento_id = cadastrar_base(cliente)
+    exp = cliente.post("/experimentos/", json={
+        "nome": "Experimento de teste", "laboratorio_id": laboratorio_id,
+        "responsavel_id": usuario_id, "equipamento_ids": [equipamento_id]
+    })
+    assert exp.status_code == 201
+    experimento_id = exp.json()["id"]
+    reserva = cliente.post("/reservas/", json={
+        "equipamento_id": equipamento_id, "usuario_id": usuario_id,
+        "experimento_id": experimento_id,
+        "inicio": "2026-12-05T09:00:00", "fim": "2026-12-05T11:00:00"
+    })
+    assert reserva.status_code == 201
+    resposta = cliente.patch(f"/experimentos/{experimento_id}", json={"equipamento_ids": []})
+    assert resposta.status_code == 409
+    associados = cliente.get(f"/relatorios/experimentos/{experimento_id}/equipamentos")
+    assert associados.status_code == 200
+    assert equipamento_id in [e["id"] for e in associados.json()]

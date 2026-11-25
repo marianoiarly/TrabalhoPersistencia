@@ -48,6 +48,11 @@ def atualizar_experimento(experimento_id: int, dados: ExperimentoUpdate, session
     if ids is None:
         ids = [equipamento.id for equipamento in experimento.equipamentos]
     equipamentos = validar_experimento(session, laboratorio_id, responsavel_id, ids)
+    # Uma reserva vinculada ao experimento deve manter seu equipamento associado.
+    reservas = session.exec(select(Reserva).where(Reserva.experimento_id == experimento_id)).all()
+    for reserva in reservas:
+        if reserva.equipamento_id not in ids:
+            raise HTTPException(409, "Equipamento possui reserva vinculada ao experimento")
     experimento.sqlmodel_update(valores)
     experimento.equipamentos = equipamentos
     session.add(experimento)
