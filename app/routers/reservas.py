@@ -68,8 +68,12 @@ def atualizar_reserva(reserva_id: int, dados: ReservaUpdate, session: Session = 
         )
     reserva.sqlmodel_update(valores)
     session.add(reserva)
-    session.commit()
-    session.refresh(reserva)
+    try:
+        session.commit()
+        session.refresh(reserva)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return reserva
 
 @router.delete("/{reserva_id}", status_code=204)
@@ -78,4 +82,8 @@ def excluir_reserva(reserva_id: int, session: Session = Depends(getSession)):
     if reserva is None:
         raise HTTPException(404, "Reserva nao encontrada")
     session.delete(reserva)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")

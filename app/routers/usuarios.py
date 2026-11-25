@@ -59,4 +59,8 @@ def excluir_usuario(usuario_id: int, session: Session = Depends(getSession)):
     if session.exec(select(Experimento.id).where(Experimento.responsavel_id == usuario_id)).first() is not None:
         raise HTTPException(409, "Usuario e responsavel por experimentos")
     session.delete(usuario)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
