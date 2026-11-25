@@ -59,6 +59,11 @@ def atualizar_equipamento(equipamento_id: int, dados: EquipamentoUpdate, session
         raise HTTPException(404, "Laboratorio nao encontrado")
     if "status" in valores and valores["status"] not in {"disponivel", "indisponivel"}:
         raise HTTPException(400, "Status de equipamento invalido")
+    # Evita deixar experimentos associados a equipamento de outro laboratorio.
+    if "laboratorio_id" in valores and valores["laboratorio_id"] != equipamento.laboratorio_id:
+        for experimento in equipamento.experimentos:
+            if experimento.laboratorio_id != valores["laboratorio_id"]:
+                raise HTTPException(409, "Equipamento vinculado a experimento de outro laboratorio")
     equipamento.sqlmodel_update(valores)
     session.add(equipamento)
     try:
