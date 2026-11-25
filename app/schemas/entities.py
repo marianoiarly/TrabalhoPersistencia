@@ -67,6 +67,9 @@ class FichaTecnicaCreate(FichaTecnicaBase):
 class FichaTecnicaPublic(FichaTecnicaBase):
     id: int
 
+class EquipamentoPublicDetalhado(EquipamentoPublic):
+    ficha_tecnica: FichaTecnicaPublic | None = None
+
 class FichaTecnicaUpdate(SQLModel):
     fabricante: str | None = None
     modelo: str | None = None

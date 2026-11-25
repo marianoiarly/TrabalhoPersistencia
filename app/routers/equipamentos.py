@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from app.database import getSession
 from app.models import Equipamento, Laboratorio, FichaTecnica, Reserva, Manutencao, ExperimentoEquipamento
 from app.schemas.entities import (
-    EquipamentoCreate, EquipamentoPublic, EquipamentoUpdate,
+    EquipamentoCreate, EquipamentoPublic, EquipamentoPublicDetalhado, EquipamentoUpdate,
     FichaTecnicaCreate, FichaTecnicaPublic, FichaTecnicaUpdate
 )
 from app.crud.equipamentos import consultar_equipamentos
@@ -38,7 +38,7 @@ def listar_equipamentos(pagina: int = Query(1, ge=1), tamanho_pagina: int = Quer
                        session: Session = Depends(getSession)):
     return consultar_equipamentos(session, pagina, tamanho_pagina, nome, laboratorio_id, status)
 
-@router.get("/{equipamento_id}", response_model=EquipamentoPublic)
+@router.get("/{equipamento_id}", response_model=EquipamentoPublicDetalhado)
 def buscar_equipamento(equipamento_id: int, session: Session = Depends(getSession)):
     equipamento = session.get(Equipamento, equipamento_id)
     if equipamento is None:
