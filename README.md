@@ -29,18 +29,12 @@ O projeto possui as seguintes entidades:
 
 A tabela `experimento_equipamento` faz a associação entre experimentos e equipamentos.
 
-Os relacionamentos do sistema são:
+Os relacionamentos principais são:
 
 - **1:1:** Equipamento — Ficha Técnica.
-- **1:N:** Laboratório — Equipamentos.
-- **1:N:** Laboratório — Experimentos.
-- **1:N:** Usuário — Reservas.
-- **1:N:** Usuário — Experimentos (responsável).
-- **1:N:** Equipamento — Reservas.
-- **1:N:** Equipamento — Manutenções.
-- **1:N:** Experimento — Reservas.
-- **N:N:** Experimento — Equipamentos, por meio de
-  `experimento_equipamento`.
+- **1:N:** Laboratório — Equipamentos; Usuário — Reservas; Equipamento — Manutenções.
+- **N:N:** Experimento — Equipamentos, por meio de `experimento_equipamento`.
+
 ### Modelo relacional
 
 laboratorio(id PK, nome, localizacao, descricao, ativo)
