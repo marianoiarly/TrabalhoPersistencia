@@ -89,7 +89,11 @@ def excluir_equipamento(equipamento_id: int, session: Session = Depends(getSessi
     if any(session.exec(consulta).first() is not None for consulta in dependencias):
         raise HTTPException(409, "Equipamento possui registros associados")
     session.delete(equipamento)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
 
 @router.post("/fichas-tecnicas/", response_model=FichaTecnicaPublic, status_code=201)
 def criar_ficha(dados: FichaTecnicaCreate, session: Session = Depends(getSession)):
@@ -121,8 +125,12 @@ def atualizar_ficha(ficha_id: int, dados: FichaTecnicaUpdate, session: Session =
         raise HTTPException(422, "Campos obrigatorios nao podem ser nulos")
     ficha.sqlmodel_update(valores)
     session.add(ficha)
-    session.commit()
-    session.refresh(ficha)
+    try:
+        session.commit()
+        session.refresh(ficha)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return ficha
 
 @router.delete("/fichas-tecnicas/{ficha_id}", status_code=204)
@@ -131,4 +139,8 @@ def excluir_ficha(ficha_id: int, session: Session = Depends(getSession)):
     if ficha is None:
         raise HTTPException(404, "Ficha tecnica nao encontrada")
     session.delete(ficha)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")

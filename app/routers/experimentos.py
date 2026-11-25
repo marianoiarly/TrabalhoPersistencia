@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from app.database import getSession
 from app.models import Experimento, Reserva
@@ -13,8 +14,12 @@ def criar_experimento(dados: ExperimentoCreate, session: Session = Depends(getSe
     experimento = Experimento.model_validate(dados.model_dump(exclude={"equipamento_ids"}))
     experimento.equipamentos = equipamentos
     session.add(experimento)
-    session.commit()
-    session.refresh(experimento)
+    try:
+        session.commit()
+        session.refresh(experimento)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return experimento
 
 @router.get("/", response_model=list[ExperimentoPublic])
@@ -56,8 +61,12 @@ def atualizar_experimento(experimento_id: int, dados: ExperimentoUpdate, session
     experimento.sqlmodel_update(valores)
     experimento.equipamentos = equipamentos
     session.add(experimento)
-    session.commit()
-    session.refresh(experimento)
+    try:
+        session.commit()
+        session.refresh(experimento)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return experimento
 
 @router.delete("/{experimento_id}", status_code=204)
@@ -69,4 +78,8 @@ def excluir_experimento(experimento_id: int, session: Session = Depends(getSessi
         raise HTTPException(409, "Experimento possui reservas")
     experimento.equipamentos.clear()
     session.delete(experimento)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
