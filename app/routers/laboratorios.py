@@ -12,8 +12,12 @@ router = APIRouter(prefix="/laboratorios", tags=["Laboratorios"])
 def criar_laboratorio(dados: LaboratorioCreate, session: Session = Depends(getSession)):
     laboratorio = Laboratorio.model_validate(dados)
     session.add(laboratorio)
-    session.commit()
-    session.refresh(laboratorio)
+    try:
+        session.commit()
+        session.refresh(laboratorio)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return laboratorio
 
 @router.get("/", response_model=list[LaboratorioPublic])
@@ -37,8 +41,12 @@ def atualizar_laboratorio(laboratorio_id: int, dados: LaboratorioUpdate, session
         raise HTTPException(422, "obrigatorio nao pode ser nulo")
     laboratorio.sqlmodel_update(valores)
     session.add(laboratorio)
-    session.commit()
-    session.refresh(laboratorio)
+    try:
+        session.commit()
+        session.refresh(laboratorio)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return laboratorio
 
 @router.delete("/{laboratorio_id}", status_code=204)

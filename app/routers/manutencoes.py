@@ -1,5 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from app.database import getSession
 from app.models import Manutencao, Equipamento, Reserva
@@ -29,8 +30,12 @@ def criar_manutencao(dados: ManutencaoCreate, session: Session = Depends(getSess
             raise HTTPException(409, "Equipamento possui reserva neste periodo")
     manutencao = Manutencao.model_validate(dados)
     session.add(manutencao)
-    session.commit()
-    session.refresh(manutencao)
+    try:
+        session.commit()
+        session.refresh(manutencao)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return manutencao
 
 @router.get("/", response_model=list[ManutencaoPublic])
@@ -77,8 +82,12 @@ def atualizar_manutencao(manutencao_id: int, dados: ManutencaoUpdate, session: S
         raise HTTPException(422, "Campos obrigatorios nao podem ser nulos")
     manutencao.sqlmodel_update(valores)
     session.add(manutencao)
-    session.commit()
-    session.refresh(manutencao)
+    try:
+        session.commit()
+        session.refresh(manutencao)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
     return manutencao
 
 @router.delete("/{manutencao_id}", status_code=204)
@@ -87,4 +96,8 @@ def excluir_manutencao(manutencao_id: int, session: Session = Depends(getSession
     if manutencao is None:
         raise HTTPException(404, "Manutencao nao encontrada")
     session.delete(manutencao)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, "Operacao viola restricoes do banco")
