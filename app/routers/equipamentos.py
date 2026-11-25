@@ -2,13 +2,28 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from app.database import getSession
-from app.models import Equipamento, Laboratorio, FichaTecnica, Reserva, Manutencao, ExperimentoEquipamento
+from app.models import (
+    Equipamento,
+    Laboratorio,
+    FichaTecnica,
+    Reserva,
+    Manutencao,
+    ExperimentoEquipamento,
+)
 from app.schemas.entities import (
-    EquipamentoCreate, EquipamentoPublic, EquipamentoPublicDetalhado, EquipamentoUpdate,
-    FichaTecnicaCreate, FichaTecnicaPublic, FichaTecnicaUpdate
+    EquipamentoCreate,
+    EquipamentoPublic,
+    EquipamentoPublicDetalhado,
+    EquipamentoUpdate,
+    FichaTecnicaCreate,
+    FichaTecnicaPublic,
+    FichaTecnicaUpdate,
 )
 from app.crud.equipamentos import consultar_equipamentos
+
 router = APIRouter(prefix="/equipamentos", tags=["Equipamentos"])
+
+
 @router.post("/", response_model=EquipamentoPublic, status_code=201)
 def criar_equipamento(dados: EquipamentoCreate, session: Session = Depends(getSession)):
     laboratorio = session.get(Laboratorio, dados.laboratorio_id)
@@ -30,13 +45,19 @@ def criar_equipamento(dados: EquipamentoCreate, session: Session = Depends(getSe
     return equipamento
 
 
-
-
 @router.get("/")
-def listar_equipamentos(pagina: int = Query(1, ge=1), tamanho_pagina: int = Query(10, ge=1, le=100),
-                       nome: str | None = None, laboratorio_id: int | None = None, status: str | None = None,
-                       session: Session = Depends(getSession)):
-    return consultar_equipamentos(session, pagina, tamanho_pagina, nome, laboratorio_id, status)
+def listar_equipamentos(
+    pagina: int = Query(1, ge=1),
+    tamanho_pagina: int = Query(10, ge=1, le=100),
+    nome: str | None = None,
+    laboratorio_id: int | None = None,
+    status: str | None = None,
+    session: Session = Depends(getSession),
+):
+    return consultar_equipamentos(
+        session, pagina, tamanho_pagina, nome, laboratorio_id, status
+    )
+
 
 @router.get("/{equipamento_id}", response_model=EquipamentoPublicDetalhado)
 def buscar_equipamento(equipamento_id: int, session: Session = Depends(getSession)):
@@ -46,24 +67,36 @@ def buscar_equipamento(equipamento_id: int, session: Session = Depends(getSessio
         raise HTTPException(404, "Equipamento nao encontrado")
     return equipamento
 
-@router.patch("/{equipamento_id}", response_model=EquipamentoPublic)
 
-def atualizar_equipamento(equipamento_id: int, dados: EquipamentoUpdate, session: Session = Depends(getSession)):
+@router.patch("/{equipamento_id}", response_model=EquipamentoPublic)
+def atualizar_equipamento(
+    equipamento_id: int,
+    dados: EquipamentoUpdate,
+    session: Session = Depends(getSession),
+):
     equipamento = session.get(Equipamento, equipamento_id)
     if equipamento is None:
         raise HTTPException(404, "Equipamento nao encontrado")
     valores = dados.model_dump(exclude_unset=True)
     if any(v is None for v in valores.values()):
         raise HTTPException(422, "Campos nao podem ser nulos")
-    if "laboratorio_id" in valores and session.get(Laboratorio, valores["laboratorio_id"]) is None:
+    if (
+        "laboratorio_id" in valores
+        and session.get(Laboratorio, valores["laboratorio_id"]) is None
+    ):
         raise HTTPException(404, "Laboratorio nao encontrado")
     if "status" in valores and valores["status"] not in {"disponivel", "indisponivel"}:
         raise HTTPException(400, "Status de equipamento invalido")
     # Evita deixar experimentos associados a equipamento de outro laboratorio.
-    if "laboratorio_id" in valores and valores["laboratorio_id"] != equipamento.laboratorio_id:
+    if (
+        "laboratorio_id" in valores
+        and valores["laboratorio_id"] != equipamento.laboratorio_id
+    ):
         for experimento in equipamento.experimentos:
             if experimento.laboratorio_id != valores["laboratorio_id"]:
-                raise HTTPException(409, "Equipamento vinculado a experimento de outro laboratorio")
+                raise HTTPException(
+                    409, "Equipamento vinculado a experimento de outro laboratorio"
+                )
     equipamento.sqlmodel_update(valores)
     session.add(equipamento)
     try:
@@ -74,8 +107,8 @@ def atualizar_equipamento(equipamento_id: int, dados: EquipamentoUpdate, session
         raise HTTPException(409, "Patrimonio ja cadastrado ou referencia invalida")
     return equipamento
 
-@router.delete("/{equipamento_id}", status_code=204)
 
+@router.delete("/{equipamento_id}", status_code=204)
 def excluir_equipamento(equipamento_id: int, session: Session = Depends(getSession)):
     equipamento = session.get(Equipamento, equipamento_id)
     if equipamento is None:
@@ -84,7 +117,9 @@ def excluir_equipamento(equipamento_id: int, session: Session = Depends(getSessi
         select(FichaTecnica.id).where(FichaTecnica.equipamento_id == equipamento_id),
         select(Reserva.id).where(Reserva.equipamento_id == equipamento_id),
         select(Manutencao.id).where(Manutencao.equipamento_id == equipamento_id),
-        select(ExperimentoEquipamento.equipamento_id).where(ExperimentoEquipamento.equipamento_id == equipamento_id)
+        select(ExperimentoEquipamento.equipamento_id).where(
+            ExperimentoEquipamento.equipamento_id == equipamento_id
+        ),
     ]
     if any(session.exec(consulta).first() is not None for consulta in dependencias):
         raise HTTPException(409, "Equipamento possui registros associados")
@@ -94,6 +129,7 @@ def excluir_equipamento(equipamento_id: int, session: Session = Depends(getSessi
     except IntegrityError:
         session.rollback()
         raise HTTPException(409, "Operacao viola restricoes do banco")
+
 
 @router.post("/fichas-tecnicas/", response_model=FichaTecnicaPublic, status_code=201)
 def criar_ficha(dados: FichaTecnicaCreate, session: Session = Depends(getSession)):
@@ -108,6 +144,8 @@ def criar_ficha(dados: FichaTecnicaCreate, session: Session = Depends(getSession
         session.rollback()
         raise HTTPException(409, "Equipamento ja possui ficha tecnica")
     return ficha
+
+
 @router.get("/fichas-tecnicas/{ficha_id}", response_model=FichaTecnicaPublic)
 def buscar_ficha(ficha_id: int, session: Session = Depends(getSession)):
     ficha = session.get(FichaTecnica, ficha_id)
@@ -115,8 +153,11 @@ def buscar_ficha(ficha_id: int, session: Session = Depends(getSession)):
         raise HTTPException(404, "Ficha tecnica nao encontrada")
     return ficha
 
+
 @router.patch("/fichas-tecnicas/{ficha_id}", response_model=FichaTecnicaPublic)
-def atualizar_ficha(ficha_id: int, dados: FichaTecnicaUpdate, session: Session = Depends(getSession)):
+def atualizar_ficha(
+    ficha_id: int, dados: FichaTecnicaUpdate, session: Session = Depends(getSession)
+):
     ficha = session.get(FichaTecnica, ficha_id)
     if ficha is None:
         raise HTTPException(404, "Ficha tecnica nao encontrada")
@@ -132,6 +173,7 @@ def atualizar_ficha(ficha_id: int, dados: FichaTecnicaUpdate, session: Session =
         session.rollback()
         raise HTTPException(409, "Operacao viola restricoes do banco")
     return ficha
+
 
 @router.delete("/fichas-tecnicas/{ficha_id}", status_code=204)
 def excluir_ficha(ficha_id: int, session: Session = Depends(getSession)):

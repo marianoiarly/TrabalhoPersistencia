@@ -2,9 +2,15 @@ from datetime import datetime
 from sqlmodel import Session, select
 from app.models import Reserva
 
-def consultar_reservas(session: Session, equipamento_id: int | None = None,
-                       usuario_id: int | None = None, status: str | None = None,
-                       inicio: datetime | None = None, fim: datetime | None = None):
+
+def consultar_reservas(
+    session: Session,
+    equipamento_id: int | None = None,
+    usuario_id: int | None = None,
+    status: str | None = None,
+    inicio: datetime | None = None,
+    fim: datetime | None = None,
+):
     consulta = select(Reserva)
     if equipamento_id is not None:
         consulta = consulta.where(Reserva.equipamento_id == equipamento_id)

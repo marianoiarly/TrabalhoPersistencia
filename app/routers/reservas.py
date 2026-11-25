@@ -10,11 +10,19 @@ from app.services.reservas import validar_reserva, verificar_disponibilidade
 
 router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
+
 @router.post("/", response_model=ReservaPublic, status_code=201)
 def criar_reserva(dados: ReservaCreate, session: Session = Depends(getSession)):
     if dados.status != "ativa":
         raise HTTPException(400, "Nova reserva deve iniciar ativa")
-    validar_reserva(session, dados.equipamento_id, dados.usuario_id, dados.experimento_id, dados.inicio, dados.fim)
+    validar_reserva(
+        session,
+        dados.equipamento_id,
+        dados.usuario_id,
+        dados.experimento_id,
+        dados.inicio,
+        dados.fim,
+    )
     reserva = Reserva.model_validate(dados)
     session.add(reserva)
     try:
@@ -25,16 +33,28 @@ def criar_reserva(dados: ReservaCreate, session: Session = Depends(getSession)):
         raise HTTPException(409, "Nao foi possivel registrar a reserva")
     return reserva
 
+
 @router.get("/", response_model=list[ReservaPublic])
-def listar_reservas(equipamento_id: int | None = None, usuario_id: int | None = None,
-                    status: str | None = None, inicio: datetime | None = None, fim: datetime | None = None,
-                    session: Session = Depends(getSession)):
+def listar_reservas(
+    equipamento_id: int | None = None,
+    usuario_id: int | None = None,
+    status: str | None = None,
+    inicio: datetime | None = None,
+    fim: datetime | None = None,
+    session: Session = Depends(getSession),
+):
     return consultar_reservas(session, equipamento_id, usuario_id, status, inicio, fim)
 
+
 @router.get("/disponibilidade")
-def disponibilidade(equipamento_id: int, inicio: datetime, fim: datetime,
-                     session: Session = Depends(getSession)):
+def disponibilidade(
+    equipamento_id: int,
+    inicio: datetime,
+    fim: datetime,
+    session: Session = Depends(getSession),
+):
     return verificar_disponibilidade(session, equipamento_id, inicio, fim)
+
 
 @router.get("/{reserva_id}", response_model=ReservaPublic)
 def buscar_reserva(reserva_id: int, session: Session = Depends(getSession)):
@@ -43,13 +63,20 @@ def buscar_reserva(reserva_id: int, session: Session = Depends(getSession)):
         raise HTTPException(404, "Reserva nao encontrada")
     return reserva
 
+
 @router.patch("/{reserva_id}", response_model=ReservaPublic)
-def atualizar_reserva(reserva_id: int, dados: ReservaUpdate, session: Session = Depends(getSession)):
+def atualizar_reserva(
+    reserva_id: int, dados: ReservaUpdate, session: Session = Depends(getSession)
+):
     reserva = session.get(Reserva, reserva_id)
     if reserva is None:
         raise HTTPException(404, "Reserva nao encontrada")
     valores = dados.model_dump(exclude_unset=True)
-    if any(v is None for k, v in valores.items() if k in {"equipamento_id", "usuario_id", "inicio", "fim", "status"}):
+    if any(
+        v is None
+        for k, v in valores.items()
+        if k in {"equipamento_id", "usuario_id", "inicio", "fim", "status"}
+    ):
         raise HTTPException(422, "Campo obrigatorio nao pode ser nulo")
     status = valores.get("status", reserva.status)
     if status not in {"ativa", "cancelada", "concluida"}:
@@ -64,7 +91,7 @@ def atualizar_reserva(reserva_id: int, dados: ReservaUpdate, session: Session = 
             valores.get("experimento_id", reserva.experimento_id),
             valores.get("inicio", reserva.inicio),
             valores.get("fim", reserva.fim),
-            ignorar_id=reserva.id
+            ignorar_id=reserva.id,
         )
     reserva.sqlmodel_update(valores)
     session.add(reserva)
@@ -75,6 +102,7 @@ def atualizar_reserva(reserva_id: int, dados: ReservaUpdate, session: Session = 
         session.rollback()
         raise HTTPException(409, "Operacao viola restricoes do banco")
     return reserva
+
 
 @router.delete("/{reserva_id}", status_code=204)
 def excluir_reserva(reserva_id: int, session: Session = Depends(getSession)):
