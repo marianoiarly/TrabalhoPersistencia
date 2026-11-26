@@ -13,7 +13,7 @@ A principal funcionalidade é verificar se um equipamento está disponível em d
 
 ## Tecnologias
 
-Python, FastAPI, SQLModel, SQLite e Alembic.
+Python, FastAPI, SQLModel, SQLite, PostgreSQL e Alembic.
 
 ## Entidades e relacionamentos
 
@@ -62,22 +62,53 @@ Os comandos abaixo são para o PowerShell, na pasta principal do projeto.
 
 ```powershell
 py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install fastapi uvicorn sqlmodel alembic pytest httpx
+.\.venv\Scripts\python.exe -m pip install fastapi uvicorn sqlmodel alembic pytest httpx "psycopg[binary]"
 ```
 
 **2. Configurar o banco:**
 
-O projeto usa SQLite por padrão, no arquivo `laboratorio.db`. A conexão fica em `app/database.py` e pode ser definida pela variável `DATABASE_URL`:
+A conexão é definida em `app/database.py` pela variável de ambiente `DATABASE_URL`. O SQLite é usado por padrão, mas também é possível selecionar PostgreSQL.
+
+**SQLite (padrão):**
+
+O banco é armazenado no arquivo `laboratorio.db`. Sem a variável `DATABASE_URL`, o sistema utiliza automaticamente:
 
 ```text
-DATABASE_URL=sqlite:///./laboratorio.db
+sqlite:///./laboratorio.db
 ```
 
-Para usar o padrão, não é necessário configurar essa variável. Se já existir outra configuração no terminal, use:
+Para configurar explicitamente no PowerShell:
 
 ```powershell
 $env:DATABASE_URL="sqlite:///./laboratorio.db"
 ```
+
+**PostgreSQL:**
+
+1. Instale e inicie o servidor PostgreSQL, se ainda não estiver instalado.
+2. Pelo pgAdmin (ou pelo `psql`), crie um banco de dados chamado `laboratorio_db`:
+
+```sql
+CREATE DATABASE laboratorio_db;
+```
+
+3. No PowerShell, na pasta do projeto, configure a conexão (substituindo `SUA_SENHA` pela senha local do seu PostgreSQL):
+
+```powershell
+$env:DATABASE_URL="postgresql+psycopg://postgres:SUA_SENHA@localhost:5432/laboratorio_db"
+```
+
+O driver `psycopg` é instalado junto das dependências no passo 1. Se o usuário, a porta ou o nome do banco forem diferentes no seu computador, ajuste a URL.
+
+A variável definida com `$env:DATABASE_URL` vale para o terminal atual. Para voltar ao SQLite, configure a URL do SQLite mostrada acima ou remova essa variável do terminal:
+
+```powershell
+Remove-Item Env:DATABASE_URL
+```
+
+**Não coloque a senha real do banco no README nem a envie para o GitHub.**
+
+Os comandos de migração, povoamento e execução das próximas etapas funcionam para o banco selecionado em `DATABASE_URL`. Aplique as migrações em um banco PostgreSQL novo antes de executar o povoamento.
 
 **3. Criar as tabelas e aplicar as migrações com Alembic:**
 
@@ -127,6 +158,14 @@ Também foram implementadas consultas em `/relatorios/`:
 - Quantidade de equipamentos por laboratório.
 
 As consultas utilizam relacionamentos, filtros, junções e agregações no banco.
+### Funcionalidade específica do tema (F17)
+
+O Sistema de Gestão de Laboratório implementa a verificação de disponibilidade dos equipamentos e o bloqueio de reservas conflitantes.
+
+- **`GET /reservas/disponibilidade`**: verifica se determinado equipamento está disponível em um período, considerando reservas existentes e manutenções abertas.
+- **`POST /reservas/`**: realiza o cadastro de reservas, impedindo horários conflitantes, utilização de equipamentos indisponíveis ou em manutenção.
+
+Essa funcionalidade garante maior controle sobre o uso dos equipamentos e evita conflitos de agendamento nos laboratórios.
 
 ## Regras de negócio
 
